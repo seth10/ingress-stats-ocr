@@ -10,6 +10,7 @@ from datetime import datetime
 import dateutil.tz
 import boto3
 from boto3.dynamodb.conditions import Key
+import re
 
 
 LAMBDA_TASK_ROOT = os.environ.get('LAMBDA_TASK_ROOT', os.path.dirname(os.path.abspath(__file__)))
@@ -80,19 +81,24 @@ def lambda_handler(event, context):
   dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
   table = dynamodb.Table('ingress-stats-ocr')
 
-
-  response = table.put_item(Item=stats)
-
-  stats['timestamp'] = 'latest'
-  response = table.put_item(Item=stats)
-
   response = table.query(
       KeyConditionExpression=Key('timestamp').eq('latest')
   )
-  # print response['Items'][0]['alltime']
-  # print response['Items'][0]['now']
   # print json.dumps(response)
-  print response['Items'][0]
+  lastStats = response['Items'][0]
+
+  response = table.put_item(Item=stats)
+
+  diffStats = {}
+  for label in labels:
+    lastStat = int(re.sub(r"[^\d]*", "", lastStats[label]))
+    stat = int(re.sub(r"[^\d]*", "", stats[label]))
+    diffStats[label] = stat - lastStat
+  
+  diffTextStats = "INGRESS STATS OCR\n\n" + "\n".join([label+": "+diffStats[label] for label in labels])
+
+  stats['timestamp'] = 'latest'
+  response = table.put_item(Item=stats)
 
   print textStats
   return textStats
