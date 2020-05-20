@@ -148,10 +148,11 @@ def lambda_handler(event, context):
   alltime += t['alltime2'][duplicateLength-1:]
   combinedData = (alltime + "\n" + now).splitlines()
 
+  textStats = "INGRESS STATS OCR\n\n" + "\n".join([label+": "+value for (label, value) in zip(labels, combinedData)])
+  print textStats
 
   stats = dict(zip(labels, combinedData))
 
-  stats['timestamp'] = datetime.now(tz=dateutil.tz.gettz('US/Pacific')).isoformat()[:19].replace('T',' ')
 
   dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
   table = dynamodb.Table('ingress-stats-ocr')
@@ -162,24 +163,23 @@ def lambda_handler(event, context):
   # print json.dumps(response)
   lastStats = response['Items'][0]
 
+  stats['timestamp'] = datetime.now(tz=dateutil.tz.gettz('US/Pacific')).isoformat()[:19].replace('T',' ')
   response = table.put_item(Item=stats)
-
-  diffNums = {}
-  diffStats = ''
-  for label in labels:
-    lastStat = int(re.sub(r"[^\d]*", "", lastStats[label]))
-    stat = int(re.sub(r"[^\d]*", "", stats[label]))
-    diffStats += diffText[label].format(stat - lastStat) + ", "
-    diffNums[label] = stat - lastStat
-  diffStats = diffStats[:-2]
-  
-  textStats = "    INGRESS STATS OCR TEXT\n\n" + "\n".join([label+": "+value for (label, value) in zip(labels, combinedData)])
-  diffTextStats = "\n    INGRESS STATS OCR DIFF\n\n" + "\n".join([label+": "+str(diffNums[label])+units[label] for label in labels])
 
   stats['timestamp'] = 'latest'
   response = table.put_item(Item=stats)
 
-  print textStats
-  print diffTextStats
+
+  diffStats = []
+  for label in labels:
+    lastStat = int(re.sub(r"[^\d]*", "", lastStats[label]))
+    stat = int(re.sub(r"[^\d]*", "", stats[label]))
+    diff = stat - lastStat
+    if diff != 0:
+      diffStats.append(diffText[label].format(diff))
+  diffStats = ", ".join(diffStats)+"."
+  diffStats = diffStats[0].capitalize() + diffStats[1:]
+  diffStats = "Ingress Stats OCR Progress Report\n\n" + diffStats
+
   print diffStats
   return diffStats
