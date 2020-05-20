@@ -3,9 +3,12 @@
 import pytesseract
 import PIL.Image
 import io
-import json
 import os
 from base64 import b64decode
+import json
+from datetime import datetime
+import boto3
+from boto3.dynamodb.conditions import Key
 
 
 LAMBDA_TASK_ROOT = os.environ.get('LAMBDA_TASK_ROOT', os.path.dirname(os.path.abspath(__file__)))
@@ -30,5 +33,33 @@ def lambda_handler(event, context):
     duplicateLength += 1
   alltime += t['alltime2'][duplicateLength-1:]
 
+  timestamp = datetime.isoformat(datetime.now())[:-7].replace('T',' ')
+
+  dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+  table = dynamodb.Table('ingress-stats-ocr')
+
+  response = table.query(
+      KeyConditionExpression=Key('timestamp').eq('latest')
+  )
+  print response['Items'][0]['alltime']
+  print response['Items'][0]['now']
+  # print json.dumps(response)
+
+  response = table.put_item(
+    Item={
+          'timestamp': timestamp,
+          'now': now,
+          'alltime': alltime
+      }
+  )
+  response = table.put_item(
+    Item={
+          'timestamp': 'latest',
+          'now': now,
+          'alltime': alltime
+      }
+  )
+  # if response['HTTPStatusCode'] != 200:
+  #   print "DynamoDB put failed"
 
   return "NOW\n{}\n\nALL TIME\n{}".format(now, alltime)
