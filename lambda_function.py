@@ -32,34 +32,63 @@ def lambda_handler(event, context):
   while alltime.rfind(t['alltime2'][:duplicateLength]) > -1:
     duplicateLength += 1
   alltime += t['alltime2'][duplicateLength-1:]
+  combinedData = (alltime + "\n" + now).splitlines()
 
-  timestamp = datetime.isoformat(datetime.now())[:-7].replace('T',' ')
+  labels = [
+    # alltime
+    "Unique Portals Visited",
+    "Portals Discovered",
+    "Seer Points",
+    "XM Collected",
+    "Distance Walked",
+    "Resonators Deployed",
+    "Links Created",
+    "Control Fields Created",
+    "Mind Units Captured",
+    "Longest Link Ever Created",
+    "Largest Control Field",
+    "XM Recharged",
+    "Portals Captured",
+    "Unique Portals Captured",
+    "Mods Deployed",
+    "Resonators Destroyed",
+    "Portals Neutralized",
+    "Enemy Links Destroyed",
+    "Enemy Fields Destroyed",
+    "Max Time Portal Held",
+    "Max Time Link Maintained",
+    "Max Link Length x Days",
+    "Max Time Field Held",
+    "Largest Field MUs x Days",
+    "Unique Missions Completed",
+    "Hacks",
+    "Glyph Hack Points",
+    "Longest Hacking Streak",
+    # now
+    "Links Active",
+    "Portals Owned",
+    "Control Fields Active",
+    "Mind Unit Control",
+    "Current Hacking Streak"
+  ]
+  stats = dict(zip(labels, combinedData))
+  print stats
+
+  stats['timestamp'] = datetime.isoformat(datetime.now())[:-7].replace('T',' ')
 
   dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
   table = dynamodb.Table('ingress-stats-ocr')
 
-  response = table.query(
-      KeyConditionExpression=Key('timestamp').eq('latest')
-  )
-  print response['Items'][0]['alltime']
-  print response['Items'][0]['now']
-  # print json.dumps(response)
+  # response = table.query(
+  #     KeyConditionExpression=Key('timestamp').eq('latest')
+  # )
+  # print response['Items'][0]['alltime']
+  # print response['Items'][0]['now']
+  #print json.dumps(response)
 
-  response = table.put_item(
-    Item={
-          'timestamp': timestamp,
-          'now': now,
-          'alltime': alltime
-      }
-  )
-  response = table.put_item(
-    Item={
-          'timestamp': 'latest',
-          'now': now,
-          'alltime': alltime
-      }
-  )
-  # if response['HTTPStatusCode'] != 200:
-  #   print "DynamoDB put failed"
+  response = table.put_item(Item=stats)
 
-  return "NOW\n{}\n\nALL TIME\n{}".format(now, alltime)
+  stats['timestamp'] = 'latest'
+  response = table.put_item(Item=stats)
+
+  return "\n".join([label+": "+value for (label, value) in zip(labels, combinedData)])
