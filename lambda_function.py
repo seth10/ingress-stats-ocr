@@ -7,6 +7,7 @@ import os
 from base64 import b64decode
 import json
 from datetime import datetime
+import dateutil.tz
 import boto3
 from boto3.dynamodb.conditions import Key
 
@@ -72,23 +73,26 @@ def lambda_handler(event, context):
     "Current Hacking Streak"
   ]
   stats = dict(zip(labels, combinedData))
-  print stats
+  textStats = "INGRESS STATS OCR\n\n" + "\n".join([label+": "+value for (label, value) in zip(labels, combinedData)])
 
-  stats['timestamp'] = datetime.isoformat(datetime.now())[:-7].replace('T',' ')
+  stats['timestamp'] = datetime.now(tz=dateutil.tz.gettz('US/Pacific')).isoformat()[:19].replace('T',' ')
 
   dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
   table = dynamodb.Table('ingress-stats-ocr')
 
-  # response = table.query(
-  #     KeyConditionExpression=Key('timestamp').eq('latest')
-  # )
-  # print response['Items'][0]['alltime']
-  # print response['Items'][0]['now']
-  #print json.dumps(response)
 
   response = table.put_item(Item=stats)
 
   stats['timestamp'] = 'latest'
   response = table.put_item(Item=stats)
 
-  return "\n".join([label+": "+value for (label, value) in zip(labels, combinedData)])
+  response = table.query(
+      KeyConditionExpression=Key('timestamp').eq('latest')
+  )
+  # print response['Items'][0]['alltime']
+  # print response['Items'][0]['now']
+  # print json.dumps(response)
+  print response['Items'][0]
+
+  print textStats
+  return textStats
