@@ -140,18 +140,12 @@ def lambda_handler(event, context):
   for i in t:
     t[i] = t[i].replace("—", "-").replace("MUS", "MUs").replace("\n\n", "\n")
   
-  now = t['now']
-  alltime = t['alltime1']
-  duplicateLength = 1
-  while alltime.rfind(t['alltime2'][:duplicateLength]) > -1:
-    duplicateLength += 1
-  alltime += t['alltime2'][duplicateLength-1:]
-  combinedData = (alltime + "\n" + now).splitlines()
+  valuesWithUnits = t['alltime1'].splitlines()[:19] + t['alltime2'].splitlines()[-9:] + t['now'].splitlines()
 
-  textStats = "INGRESS STATS OCR\n\n" + "\n".join([label+": "+value for (label, value) in zip(labels, combinedData)])
+  textStats = "INGRESS STATS OCR\n\n" + "\n".join([label+": "+value for (label, value) in zip(labels, valuesWithUnits)])
   print textStats
 
-  stats = dict(zip(labels, combinedData))
+  stats = dict(zip(labels, valuesWithUnits))
 
 
   dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
@@ -179,6 +173,8 @@ def lambda_handler(event, context):
       diffStats.append(diffText[label].format(diff))
   diffStats = ", ".join(diffStats)+"."
   diffStats = diffStats[0].capitalize() + diffStats[1:]
+  if diffStats == ".":
+    diffStats = "No change."
   diffStats = "Ingress Stats OCR Progress Report\n\n" + diffStats
 
   print diffStats
