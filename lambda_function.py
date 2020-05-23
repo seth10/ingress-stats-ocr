@@ -138,7 +138,8 @@ def lambda_handler(event, context):
     t[screenshotName] = text
   
   for i in t:
-    t[i] = t[i].replace("—", "-").replace("MUS", "MUs").replace("\n\n", "\n")
+    t[i] = t[i].replace("—", "-").replace("MUS", "MUs").replace("\n\n", "\n").replace("C]", "0")
+    # sometimes 0's are recorded as '8' or 'C]'
   
   valuesWithUnits = t['alltime1'].splitlines()[:19] + t['alltime2'].splitlines()[-9:] + t['now'].splitlines()
 
@@ -156,6 +157,17 @@ def lambda_handler(event, context):
   )
   # print json.dumps(response)
   lastStats = response['Items'][0]
+
+
+  # Sanity checks: check for any values that should be strictly increasing that have decreased.
+  # A digit that should have been 0 before might have been previously recorded as 8.
+  # All values except for the ones on the "NOW" tab (last 5 labels) should only increase.
+  for label in labels[:-5]:
+    lastStat = int(re.sub(r"[^\d]*", "", lastStats[label]))
+    stat = int(re.sub(r"[^\d]*", "", stats[label]))
+    if lastStat > stat:
+      pass
+
 
   stats['timestamp'] = datetime.now(tz=dateutil.tz.gettz('US/Pacific')).isoformat()[:19].replace('T',' ')
   response = table.put_item(Item=stats)
