@@ -26,3 +26,10 @@ Approximate textual representation:
 14: Quick Look ⊲13⊳
 15: Delete Photos ⊲1⊳
 ```
+
+<hr>
+
+Screenshot:
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/5026621/83966845-8be47f00-a871-11ea-9bce-aa19739ca917.png" width="50%">
+</p>
