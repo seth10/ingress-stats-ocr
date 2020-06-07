@@ -1,0 +1,14 @@
+../pytesseract/__init__.py
+../pytesseract/pytesseract.py
+../pytesseract/test.png
+../pytesseract/test-european.jpg
+../pytesseract/__init__.pyc
+../pytesseract/pytesseract.pyc
+./
+dependency_links.txt
+requires.txt
+SOURCES.txt
+PKG-INFO
+entry_points.txt
+top_level.txt
+../../../../bin/pytesseract
